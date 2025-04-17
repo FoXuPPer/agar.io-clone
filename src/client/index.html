@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <!-- Meta Properties -->
@@ -10,17 +10,61 @@
     <!-- Audio -->
     <audio id="split_cell" src="audio/split.mp3"></audio>
     <audio id="spawn_cell" src="audio/spawn.mp3"></audio>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #gameAreaWrapper, #cvs {
+            width: 100%;
+            height: 100%;
+        }
+        .controls {
+            position: absolute;
+            top: 10px;
+            z-index: 1000;
+        }
+        .fullscreen-control {
+            right: 100px;
+        }
+        .sound-control {
+            right: 10px;
+        }
+        .controls button {
+            padding: 5px 10px;
+            font-size: 14px;
+            background-color: #1e90ff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .controls button:hover {
+            background-color: #4682b4;
+        }
+    </style>
 </head>
 <body>
     <div id="gameAreaWrapper">
+        <div class="controls">
+            <div class="fullscreen-control">
+                <button id="fullscreenButton">Полный экран</button>
+            </div>
+            <div class="sound-control">
+                <button id="soundToggle">Выключить звук</button>
+            </div>
+        </div>
         <div id="status"><span class="title">Leaderboard</span></div>
         <div class="chatbox" id="chatbox">
             <ul id="chatList" class="chat-list"></ul>
             <input id="chatInput" type="text" class="chat-input" placeholder="Chat here..." maxlength="35" />
         </div>
         <div id="mobile">
-           <input type="image" id="split" class="split" src="img/split.png" alt="splitBtn">
-           <input type="image" id="feed" class="feed" src="img/feed.png" alt="feedBtn">
+            <input type="image" id="split" class="split" src="img/split.png" alt="splitBtn">
+            <input type="image" id="feed" class="feed" src="img/feed.png" alt="feedBtn">
         </div>
         <canvas tabindex="1" id="cvs"></canvas>
     </div>
@@ -60,5 +104,45 @@
     <!-- JS -->
     <script src="//code.jquery.com/jquery-2.2.0.min.js"></script>
     <script src="js/app.js"></script>
+    <script>
+        const canvas = document.getElementById('cvs');
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const fullscreenButton = document.getElementById('fullscreenButton');
+        fullscreenButton.addEventListener('click', () => {
+            const gameArea = document.getElementById('gameAreaWrapper');
+            if (gameArea.requestFullscreen) {
+                gameArea.requestFullscreen();
+            } else if (gameArea.webkitRequestFullscreen) {
+                gameArea.webkitRequestFullscreen();
+            } else if (gameArea.msRequestFullscreen) {
+                gameArea.msRequestFullscreen();
+            }
+        });
+
+        let soundEnabled = true;
+        const soundToggleButton = document.getElementById('soundToggle');
+        const splitSound = document.getElementById('split_cell');
+        const spawnSound = document.getElementById('spawn_cell');
+        
+        soundToggleButton.addEventListener('click', () => {
+            soundEnabled = !soundEnabled;
+            soundToggleButton.textContent = soundEnabled ? 'Выключить звук' : 'Включить звук';
+            // Приглушаем или включаем звуки
+            splitSound.muted = !soundEnabled;
+            spawnSound.muted = !soundEnabled;
+        });
+
+        if (window.Telegram && window.Telegram.WebApp) {
+            const tg = window.Telegram.WebApp;
+            tg.ready();
+            tg.expand();
+        }
+    </script>
 </body>
 </html>
