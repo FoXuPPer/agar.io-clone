@@ -211,20 +211,17 @@ function endJoystick() {
 function drawJoystick() {
     if (!joystickActive) return; // Пропускаем отрисовку, если джойстик неактивен
 
-    // Проверяем состояние тёмной темы
-    const darkMode = document.getElementById('darkMode').checked;
-
     // Основа джойстика (внешний круг)
     graph.beginPath();
     graph.arc(joystickBaseX, joystickBaseY, joystickRadius, 0, Math.PI * 2);
-    graph.fillStyle = darkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)';
+    graph.fillStyle = 'rgba(0, 0, 0, 0.4)'; // Всегда тёмный
     graph.fill();
     graph.closePath();
 
     // Центральная часть джойстика (внутренний круг)
     graph.beginPath();
     graph.arc(joystickX, joystickY, joystickRadius / 2, 0, Math.PI * 2);
-    graph.fillStyle = darkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)';
+    graph.fillStyle = 'rgba(0, 0, 0, 0.8)';
     graph.fill();
     graph.closePath();
 }
@@ -457,9 +454,15 @@ function gameLoop() {
         if (joystickActive) {
             const dx = joystickX - joystickBaseX;
             const dy = joystickY - joystickBaseY;
-            // Обновляем target относительно центра экрана
-            window.canvas.target.x = global.screen.width / 2 + dx * 3;
-            window.canvas.target.y = global.screen.height / 2 + dy * 3;
+            // Преобразуем экранное смещение в игровые координаты
+            const scaleFactor = 10;
+            window.canvas.target.x = player.x + dx * scaleFactor;
+            window.canvas.target.y = player.y + dy * scaleFactor;
+            console.log("Джойстик: dx =", dx, "dy =", dy, "Target:", window.canvas.target);
+        } else {
+            // Если джойстик неактивен, останавливаем движение
+            window.canvas.target.x = player.x;
+            window.canvas.target.y = player.y;
         }
 
         // Отрисовка джойстика
