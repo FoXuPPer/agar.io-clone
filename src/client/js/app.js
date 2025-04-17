@@ -163,8 +163,6 @@ let joystickBaseX = 0;
 let joystickBaseY = 0;
 const joystickRadius = 50;
 const maxDistance = 50;
-let lastDx = 0;
-let lastDy = 0;
 
 // Привязка событий для джойстика
 c.addEventListener('mousedown', startJoystick);
@@ -207,22 +205,26 @@ function endJoystick() {
     joystickActive = false;
     joystickX = joystickBaseX;
     joystickY = joystickBaseY;
-    lastDx = 0;
-    lastDy = 0;
     console.log("Джойстик отключён"); // Отладка
 }
 
 function drawJoystick() {
     if (!joystickActive) return; // Пропускаем отрисовку, если джойстик неактивен
+
+    // Проверяем состояние тёмной темы
+    const darkMode = document.getElementById('darkMode').checked;
+
+    // Основа джойстика (внешний круг)
     graph.beginPath();
     graph.arc(joystickBaseX, joystickBaseY, joystickRadius, 0, Math.PI * 2);
-    graph.fillStyle = 'rgba(255, 255, 255, 0.2)';
+    graph.fillStyle = darkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)';
     graph.fill();
     graph.closePath();
 
+    // Центральная часть джойстика (внутренний круг)
     graph.beginPath();
     graph.arc(joystickX, joystickY, joystickRadius / 2, 0, Math.PI * 2);
-    graph.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    graph.fillStyle = darkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)';
     graph.fill();
     graph.closePath();
 }
@@ -455,13 +457,9 @@ function gameLoop() {
         if (joystickActive) {
             const dx = joystickX - joystickBaseX;
             const dy = joystickY - joystickBaseY;
-            // Обновляем target только если изменения значительные
-            if (Math.abs(dx - lastDx) > 1 || Math.abs(dy - lastDy) > 1) {
-                window.canvas.target.x = player.x + dx * 5; // Используем текущую позицию игрока
-                window.canvas.target.y = player.y + dy * 5;
-                lastDx = dx;
-                lastDy = dy;
-            }
+            // Обновляем target относительно центра экрана
+            window.canvas.target.x = global.screen.width / 2 + dx * 3;
+            window.canvas.target.y = global.screen.height / 2 + dy * 3;
         }
 
         // Отрисовка джойстика
@@ -477,7 +475,7 @@ function resize() {
     if (!socket) return;
 
     // Ограничиваем максимальный размер canvas для снижения нагрузки
-    const maxWidth = 1280; // Уменьшен для лучшей производительности
+    const maxWidth = 1280;
     const maxHeight = 720;
     let newWidth = global.playerType == 'player' ? window.innerWidth : global.game.width;
     let newHeight = global.playerType == 'player' ? window.innerHeight : global.game.height;
