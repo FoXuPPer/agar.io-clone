@@ -38,9 +38,11 @@ function startGame(type) {
     window.canvas.socket = socket;
     global.socket = socket;
 
+    // Воспроизведение звука при старте игры
     playSpawnSound();
 }
 
+// Управление звуком
 let soundEnabled = true;
 const splitSound = document.getElementById('split_cell');
 const spawnSound = document.getElementById('spawn_cell');
@@ -57,6 +59,7 @@ function playSpawnSound() {
     }
 }
 
+// Checks if the nick chosen contains valid alphanumeric characters (and underscores).
 function validNick() {
     var regex = /^\w*$/;
     debug('Regex Test', regex.exec(playerNameInput.value));
@@ -105,6 +108,8 @@ window.onload = function () {
         }
     });
 };
+
+// TODO: Break out into GameControls.
 
 var playerConfig = {
     border: 6,
@@ -158,8 +163,10 @@ let joystickBaseX = 0;
 let joystickBaseY = 0;
 const joystickRadius = 50;
 const maxDistance = 50;
+let lastDx = 0;
+let lastDy = 0;
 
-// Отладка для проверки событий
+// Привязка событий для джойстика
 c.addEventListener('mousedown', startJoystick);
 c.addEventListener('touchstart', startJoystick);
 c.addEventListener('mousemove', moveJoystick);
@@ -200,91 +207,24 @@ function endJoystick() {
     joystickActive = false;
     joystickX = joystickBaseX;
     joystickY = joystickBaseY;
+    lastDx = 0;
+    lastDy = 0;
     console.log("Джойстик отключён"); // Отладка
 }
 
 function drawJoystick() {
-    if (joystickActive) {
-        graph.save();
-        graph.beginPath();
-        graph.arc(joystickBaseX, joystickBaseY, joystickRadius, 0, Math.PI * 2);
-        graph.fillStyle = 'rgba(255, 255, 255, 0.2)';
-        graph.fill();
-        graph.closePath();
+    if (!joystickActive) return; // Пропускаем отрисовку, если джойстик неактивен
+    graph.beginPath();
+    graph.arc(joystickBaseX, joystickBaseY, joystickRadius, 0, Math.PI * 2);
+    graph.fillStyle = 'rgba(255, 255, 255, 0.2)';
+    graph.fill();
+    graph.closePath();
 
-        graph.beginPath();
-        graph.arc(joystickX, joystickY, joystickRadius / 2, 0, Math.PI * 2);
-        graph.fillStyle = 'rgba(255, 255, 255, 0.5)';
-        graph.fill();
-        graph.closePath();
-        graph.restore();
-    }
-}
-
-function gameLoop() {
-    if (global.gameStart) {
-        graph.fillStyle = global.backgroundColor;
-        graph.fillRect(0, 0, global.screen.width, global.screen.height);
-
-        render.drawGrid(global, player, global.screen, graph);
-        foods.forEach(food => {
-            let position = getPosition(food, player, global.screen);
-            render.drawFood(position, food, graph);
-        });
-        fireFood.forEach(fireFood => {
-            let position = getPosition(fireFood, player, global.screen);
-            render.drawFireFood(position, fireFood, playerConfig, graph);
-        });
-        viruses.forEach(virus => {
-            let position = getPosition(virus, player, global.screen);
-            render.drawVirus(position, virus, graph);
-        });
-
-        let borders = {
-            left: global.screen.width / 2 - player.x,
-            right: global.screen.width / 2 + global.game.width - player.x,
-            top: global.screen.height / 2 - player.y,
-            bottom: global.screen.height / 2 + global.game.height - player.y
-        };
-        if (global.borderDraw) {
-            render.drawBorder(borders, graph);
-        }
-
-        var cellsToDraw = [];
-        for (var i = 0; i < users.length; i++) {
-            let color = 'hsl(' + users[i].hue + ', 100%, 50%)';
-            let borderColor = 'hsl(' + users[i].hue + ', 100%, 45%)';
-            for (var j = 0; j < users[i].cells.length; j++) {
-                cellsToDraw.push({
-                    color: color,
-                    borderColor: borderColor,
-                    mass: users[i].cells[j].mass,
-                    name: users[i].name,
-                    radius: users[i].cells[j].radius,
-                    x: users[i].cells[j].x - player.x + global.screen.width / 2,
-                    y: users[i].cells[j].y - player.y + global.screen.height / 2
-                });
-            }
-        }
-        cellsToDraw.sort(function (obj1, obj2) {
-            return obj1.mass - obj2.mass;
-        });
-        render.drawCells(cellsToDraw, playerConfig, global.toggleMassState, borders, graph);
-
-        // Обновление цели игрока с учётом джойстика
-        if (joystickActive) {
-            const dx = joystickX - joystickBaseX;
-            const dy = joystickY - joystickBaseY;
-            // Обновляем target на основе джойстика
-            window.canvas.target.x = player.x + dx * 5; // Напрямую используем позицию игрока
-            window.canvas.target.y = player.y + dy * 5;
-        }
-
-        // Отрисовка джойстика
-        drawJoystick();
-
-        socket.emit('0', window.canvas.target); // playerSendTarget "Heartbeat".
-    }
+    graph.beginPath();
+    graph.arc(joystickX, joystickY, joystickRadius / 2, 0, Math.PI * 2);
+    graph.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    graph.fill();
+    graph.closePath();
 }
 
 $("#feed").click(function () {
@@ -295,7 +235,7 @@ $("#feed").click(function () {
 $("#split").click(function () {
     socket.emit('2');
     window.canvas.reenviar = false;
-    playSplitSound(); 
+    playSplitSound(); // Воспроизведение звука при разделении
 });
 
 function handleDisconnect() {
@@ -305,6 +245,7 @@ function handleDisconnect() {
     }
 }
 
+// socket stuff.
 function setupSocket(socket) {
     socket.on('pongcheck', function () {
         var latency = Date.now() - global.startPingTime;
@@ -444,6 +385,51 @@ function animloop() {
     global.animLoopHandle = window.requestAnimFrame(animloop);
     gameLoop();
 }
+
+// Счётчик FPS для отладки производительности
+let lastTime = performance.now();
+let frameCount = 0;
+let fps = 0;
+
+function gameLoop() {
+    // Обновление FPS
+    const now = performance.now();
+    frameCount++;
+    if (now - lastTime >= 1000) {
+        fps = frameCount;
+        frameCount = 0;
+        lastTime = now;
+        console.log("FPS:", fps);
+    }
+
+    if (global.gameStart) {
+        graph.fillStyle = global.backgroundColor;
+        graph.fillRect(0, 0, global.screen.width, global.screen.height);
+
+        render.drawGrid(global, player, global.screen, graph);
+        foods.forEach(food => {
+            let position = getPosition(food, player, global.screen);
+            render.drawFood(position, food, graph);
+        });
+        fireFood.forEach(fireFood => {
+            let position = getPosition(fireFood, player, global.screen);
+            render.drawFireFood(position, fireFood, playerConfig, graph);
+        });
+        viruses.forEach(virus => {
+            let position = getPosition(virus, player, global.screen);
+            render.drawVirus(position, virus, graph);
+        });
+
+        let borders = {
+            left: global.screen.width / 2 - player.x,
+            right: global.screen.width / 2 + global.game.width - player.x,
+            top: global.screen.height / 2 - player.y,
+            bottom: global.screen.height / 2 + global.game.height - player.y
+        };
+        if (global.borderDraw) {
+            render.drawBorder(borders, graph);
+        }
+
         var cellsToDraw = [];
         for (var i = 0; i < users.length; i++) {
             let color = 'hsl(' + users[i].hue + ', 100%, 50%)';
@@ -464,7 +450,24 @@ function animloop() {
             return obj1.mass - obj2.mass;
         });
         render.drawCells(cellsToDraw, playerConfig, global.toggleMassState, borders, graph);
+
+        // Обновление цели игрока с учётом джойстика
+        if (joystickActive) {
+            const dx = joystickX - joystickBaseX;
+            const dy = joystickY - joystickBaseY;
+            // Обновляем target только если изменения значительные
+            if (Math.abs(dx - lastDx) > 1 || Math.abs(dy - lastDy) > 1) {
+                window.canvas.target.x = player.x + dx * 5; // Используем текущую позицию игрока
+                window.canvas.target.y = player.y + dy * 5;
+                lastDx = dx;
+                lastDy = dy;
+            }
         }
+
+        // Отрисовка джойстика
+        drawJoystick();
+
+        socket.emit('0', window.canvas.target); // playerSendTarget "Heartbeat".
     }
 }
 
@@ -473,8 +476,16 @@ window.addEventListener('resize', resize);
 function resize() {
     if (!socket) return;
 
-    player.screenWidth = c.width = global.screen.width = global.playerType == 'player' ? window.innerWidth : global.game.width;
-    player.screenHeight = c.height = global.screen.height = global.playerType == 'player' ? window.innerHeight : global.game.height;
+    // Ограничиваем максимальный размер canvas для снижения нагрузки
+    const maxWidth = 1280; // Уменьшен для лучшей производительности
+    const maxHeight = 720;
+    let newWidth = global.playerType == 'player' ? window.innerWidth : global.game.width;
+    let newHeight = global.playerType == 'player' ? window.innerHeight : global.game.height;
+    if (newWidth > maxWidth) newWidth = maxWidth;
+    if (newHeight > maxHeight) newHeight = maxHeight;
+
+    player.screenWidth = c.width = global.screen.width = newWidth;
+    player.screenHeight = c.height = global.screen.height = newHeight;
 
     if (global.playerType == 'spectator') {
         player.x = global.game.width / 2;
