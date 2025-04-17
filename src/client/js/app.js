@@ -150,6 +150,8 @@ roundFoodSetting.onchange = settings.toggleRoundFood;
 var c = window.canvas.cv;
 var graph = c.getContext('2d');
 
+// ... (предыдущий код app.js)
+
 // Джойстик
 let joystickActive = false;
 let joystickX = 0;
@@ -159,6 +161,7 @@ let joystickBaseY = 0;
 const joystickRadius = 50;
 const maxDistance = 50;
 
+// Отладка для проверки событий
 c.addEventListener('mousedown', startJoystick);
 c.addEventListener('touchstart', startJoystick);
 c.addEventListener('mousemove', moveJoystick);
@@ -174,6 +177,7 @@ function startJoystick(event) {
     joystickBaseY = touch.clientY;
     joystickX = joystickBaseX;
     joystickY = joystickBaseY;
+    console.log("Джойстик активирован:", joystickBaseX, joystickBaseY); // Отладка
 }
 
 function moveJoystick(event) {
@@ -191,16 +195,19 @@ function moveJoystick(event) {
         joystickX = joystickBaseX + Math.cos(angle) * maxDistance;
         joystickY = joystickBaseY + Math.sin(angle) * maxDistance;
     }
+    console.log("Джойстик движется:", dx, dy); // Отладка
 }
 
 function endJoystick() {
     joystickActive = false;
     joystickX = joystickBaseX;
     joystickY = joystickBaseY;
+    console.log("Джойстик отключён"); // Отладка
 }
 
 function drawJoystick() {
     if (joystickActive) {
+        graph.save();
         graph.beginPath();
         graph.arc(joystickBaseX, joystickBaseY, joystickRadius, 0, Math.PI * 2);
         graph.fillStyle = 'rgba(255, 255, 255, 0.2)';
@@ -212,6 +219,73 @@ function drawJoystick() {
         graph.fillStyle = 'rgba(255, 255, 255, 0.5)';
         graph.fill();
         graph.closePath();
+        graph.restore();
+    }
+}
+
+function gameLoop() {
+    if (global.gameStart) {
+        graph.fillStyle = global.backgroundColor;
+        graph.fillRect(0, 0, global.screen.width, global.screen.height);
+
+        render.drawGrid(global, player, global.screen, graph);
+        foods.forEach(food => {
+            let position = getPosition(food, player, global.screen);
+            render.drawFood(position, food, graph);
+        });
+        fireFood.forEach(fireFood => {
+            let position = getPosition(fireFood, player, global.screen);
+            render.drawFireFood(position, fireFood, playerConfig, graph);
+        });
+        viruses.forEach(virus => {
+            let position = getPosition(virus, player, global.screen);
+            render.drawVirus(position, virus, graph);
+        });
+
+        let borders = {
+            left: global.screen.width / 2 - player.x,
+            right: global.screen.width / 2 + global.game.width - player.x,
+            top: global.screen.height / 2 - player.y,
+            bottom: global.screen.height / 2 + global.game.height - player.y
+        };
+        if (global.borderDraw) {
+            render.drawBorder(borders, graph);
+        }
+
+        var cellsToDraw = [];
+        for (var i = 0; i < users.length; i++) {
+            let color = 'hsl(' + users[i].hue + ', 100%, 50%)';
+            let borderColor = 'hsl(' + users[i].hue + ', 100%, 45%)';
+            for (var j = 0; j < users[i].cells.length; j++) {
+                cellsToDraw.push({
+                    color: color,
+                    borderColor: borderColor,
+                    mass: users[i].cells[j].mass,
+                    name: users[i].name,
+                    radius: users[i].cells[j].radius,
+                    x: users[i].cells[j].x - player.x + global.screen.width / 2,
+                    y: users[i].cells[j].y - player.y + global.screen.height / 2
+                });
+            }
+        }
+        cellsToDraw.sort(function (obj1, obj2) {
+            return obj1.mass - obj2.mass;
+        });
+        render.drawCells(cellsToDraw, playerConfig, global.toggleMassState, borders, graph);
+
+        // Обновление цели игрока с учётом джойстика
+        if (joystickActive) {
+            const dx = joystickX - joystickBaseX;
+            const dy = joystickY - joystickBaseY;
+            // Обновляем target на основе джойстика
+            window.canvas.target.x = player.x + dx * 5; // Напрямую используем позицию игрока
+            window.canvas.target.y = player.y + dy * 5;
+        }
+
+        // Отрисовка джойстика
+        drawJoystick();
+
+        socket.emit('0', window.canvas.target); // playerSendTarget "Heartbeat".
     }
 }
 
