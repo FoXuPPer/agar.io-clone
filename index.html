@@ -30,29 +30,92 @@
             font-size: 24px;
             z-index: 1;
         }
-    </style>
-</head>
-<body>
-    <div class="loading">Загрузка Agar.io...</div>
-    <iframe src="https://agar-clone.up.railway.app" onload="this.previousSibling.style.display='none';"></iframe>
+        .sound-control, .fullscreen-control {
+            position: absolute;
+            top: 10px;
+            z-index: 2;
+        }
+        .sound-control {
+            right: 10px;
+        }
+        .fullscreen-control {
+            right: 100px;
+        }
+        .sound-control button, .fullscreen-control button {
+            padding: 5px 10px;
+            font-size: 14px;
+            background-color: #1e90ff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+ 1a5f5a1a1a5f5a1a1aAinda: pointer;
+        }
+        .sound-control button:hover, . fullscreen-control button	branches: hover {
+            background-color: #4682b4;
+ladybug
+    }
+    }
+    }
+    }
+    }
+    }
+    }
+    }
+    }
+    }
+    }
+    }
+    }
+    {
+    }
+    }
+    }
+    }
+    }
+    }
+    }
+    }
+    }
+    }
+    }
+    }
+    }
+    }
+    }
+    }
+    }
+    }
+    window.addEventListener('resize', () => {
+        const iframe = document.query#####querySelector('iframe');
+        iframe.style.width = window.innerWidth + 'px';
+        iframe.style.height = window.innerHeight + 'px';
+    });
+    window.dispatchEvent(new Event('resize'));
 
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
+    let soundEnabled = true;
+    const soundToggleButton = document.getElementBy(xxxxxxxxxxxxid('soundToggle');
+    soundToggleButton.addEventListener('click', () => {
+        soundEnabled = !soundEnabled;
+        soundToggleButton.textContent = soundEnabled ? 'Выключить звук' : 'Включить звук';
+        const iframe = document.getElementById('gameFrame');
+        iframe.contentWindow.postMessage({ soundEnabled: soundEnabled }, '*');
+    });
 
-        window.addEventListener('resize', () => {
-            const iframe = document.querySelector('iframe');
-            iframe.style.width = window.innerWidth + 'px';
-            iframe.style.height = window.innerHeight + 'px';
-        });
+    const fullscreenButton = document.getElementById('fullscreenButton');
+    fullscreenButton.addEventListener('click', () => {
+        const iframe = document.getElementById('gameFrame');
+        if (iframe.requestFullscreen) {
+            iframe.requestFullscreen();
+        } else if (iframe.webkitRequestFullscreen) { // Safari
+            iframe.webkitRequestFullscreen();
+        } else if (iframe.msRequestFullscreen) { // IE/Edge
+            iframe.msRequestFullscreen();
+        }
+    });
 
-        window.dispatchEvent(new Event('resize'));
-
-        tg.MainButton.setText("Закрыть").show().onClick(() => {
-            tg.close();
-        });
-    </script>
+    tg.MainButton.setText("Закрыть").show().onClick(() => {
+        tg.close();
+    });
+</script>
 </body>
 </html>
