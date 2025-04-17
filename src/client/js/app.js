@@ -150,8 +150,6 @@ roundFoodSetting.onchange = settings.toggleRoundFood;
 var c = window.canvas.cv;
 var graph = c.getContext('2d');
 
-// ... (предыдущий код app.js)
-
 // Джойстик
 let joystickActive = false;
 let joystickX = 0;
@@ -446,36 +444,6 @@ function animloop() {
     global.animLoopHandle = window.requestAnimFrame(animloop);
     gameLoop();
 }
-
-function gameLoop() {
-    if (global.gameStart) {
-        graph.fillStyle = global.backgroundColor;
-        graph.fillRect(0, 0, global.screen.width, global.screen.height);
-
-        render.drawGrid(global, player, global.screen, graph);
-        foods.forEach(food => {
-            let position = getPosition(food, player, global.screen);
-            render.drawFood(position, food, graph);
-        });
-        fireFood.forEach(fireFood => {
-            let position = getPosition(fireFood, player, global.screen);
-            render.drawFireFood(position, fireFood, playerConfig, graph);
-        });
-        viruses.forEach(virus => {
-            let position = getPosition(virus, player, global.screen);
-            render.drawVirus(position, virus, graph);
-        });
-
-        let borders = {
-            left: global.screen.width / 2 - player.x,
-            right: global.screen.width / 2 + global.game.width - player.x,
-            top: global.screen.height / 2 - player.y,
-            bottom: global.screen.height / 2 + global.game.height - player.y
-        };
-        if (global.borderDraw) {
-            render.drawBorder(borders, graph);
-        }
-
         var cellsToDraw = [];
         for (var i = 0; i < users.length; i++) {
             let color = 'hsl(' + users[i].hue + ', 100%, 50%)';
@@ -496,19 +464,7 @@ function gameLoop() {
             return obj1.mass - obj2.mass;
         });
         render.drawCells(cellsToDraw, playerConfig, global.toggleMassState, borders, graph);
-
-        // Отрисовка джойстика
-        drawJoystick();
-
-        // Обновление цели игрока с учётом джойстика
-        if (joystickActive) {
-            const dx = joystickX - joystickBaseX;
-            const dy = joystickY - joystickBaseY;
-            window.canvas.target.x = global.screen.width / 2 + dx * 5; 
-            window.canvas.target.y = global.screen.height / 2 + dy * 5;
         }
-
-        socket.emit('0', window.canvas.target); 
     }
 }
 
