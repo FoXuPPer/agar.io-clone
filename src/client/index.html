@@ -22,41 +22,10 @@
             width: 100%;
             height: 100%;
         }
-        .controls {
-            position: absolute;
-            top: 10px;
-            z-index: 1000;
-        }
-        .fullscreen-control {
-            right: 100px;
-        }
-        .sound-control {
-            right: 10px;
-        }
-        .controls button {
-            padding: 5px 10px;
-            font-size: 14px;
-            background-color: #1e90ff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .controls button:hover {
-            background-color: #4682b4;
-        }
     </style>
 </head>
 <body>
     <div id="gameAreaWrapper">
-        <div class="controls">
-            <div class="fullscreen-control">
-                <button id="fullscreenButton">Полный экран</button>
-            </div>
-            <div class="sound-control">
-                <button id="soundToggle">Выключить звук</button>
-            </div>
-        </div>
         <div id="status"><span class="title">Leaderboard</span></div>
         <div class="chatbox" id="chatbox">
             <ul id="chatList" class="chat-list"></ul>
@@ -105,118 +74,7 @@
     <script src="//code.jquery.com/jquery-2.2.0.min.js"></script>
     <script src="js/app.js"></script>
     <script>
-        // Адаптация размера canvas
-        const canvas = document.getElementById('cvs');
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-
-        const fullscreenButton = document.getElementById('fullscreenButton');
-        fullscreenButton.addEventListener('click', () => {
-            const gameArea = document.getElementById('gameAreaWrapper');
-            if (gameArea.requestFullscreen) {
-                gameArea.requestFullscreen();
-            } else if (gameArea.webkitRequestFullscreen) {
-                gameArea.webkitRequestFullscreen();
-            } else if (gameArea.msRequestFullscreen) {
-                gameArea.msRequestFullscreen();
-            }
-        });
-
-        let soundEnabled = true;
-        const soundToggleButton = document.getElementById('soundToggle');
-        const splitSound = document.getElementById('split_cell');
-        const spawnSound = document.getElementById('spawn_cell');
-        
-        soundToggleButton.addEventListener('click', () => {
-            soundEnabled = !soundEnabled;
-            soundToggleButton.textContent = soundEnabled ? 'Выключить звук' : 'Включить звук';
-            splitSound.muted = !soundEnabled;
-            spawnSound.muted = !soundEnabled;
-            window.soundEnabled = soundEnabled;
-        });
-
-        let joystickActive = false;
-        let joystickX = 0;
-        let joystickY = 0;
-        let joystickBaseX = 0;
-        let joystickBaseY = 0;
-        const joystickRadius = 50;
-        const maxDistance = 50;
-
-        const ctx = canvas.getContext('2d');
-
-        canvas.addEventListener('mousedown', startJoystick);
-        canvas.addEventListener('touchstart', startJoystick);
-        canvas.addEventListener('mousemove', moveJoystick);
-        canvas.addEventListener('touchmove', moveJoystick);
-        canvas.addEventListener('mouseup', endJoystick);
-        canvas.addEventListener('touchend', endJoystick);
-
-        function startJoystick(event) {
-            event.preventDefault();
-            joystickActive = true;
-            const touch = event.type === 'touchstart' ? event.touches[0] : event;
-            joystickBaseX = touch.clientX;
-            joystickBaseY = touch.clientY;
-            joystickX = joystickBaseX;
-            joystickY = joystickBaseY;
-        }
-
-        function moveJoystick(event) {
-            if (!joystickActive) return;
-            event.preventDefault();
-            const touch = event.type === 'touchmove' ? event.touches[0] : event;
-            joystickX = touch.clientX;
-            joystickY = touch.clientY;
-
-            const dx = joystickX - joystickBaseX;
-            const dy = joystickY - joystickBaseY;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance > maxDistance) {
-                const angle = Math.atan2(dy, dx);
-                joystickX = joystickBaseX + Math.cos(angle) * maxDistance;
-                joystickY = joystickBaseY + Math.sin(angle) * maxDistance;
-            }
-            window.joystickDx = dx;
-            window.joystickDy = dy;
-            window.joystickActive = joystickActive;
-        }
-
-        function endJoystick() {
-            joystickActive = false;
-            joystickX = joystickBaseX;
-            joystickY = joystickBaseY;
-            window.joystickActive = joystickActive;
-            window.joystickDx = 0;
-            window.joystickDy = 0;
-        }
-
-        function drawJoystick() {
-            if (joystickActive) {
-                ctx.beginPath();
-                ctx.arc(joystickBaseX, joystickBaseY, joystickRadius, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-                ctx.fill();
-                ctx.closePath();
-
-                ctx.beginPath();
-                ctx.arc(joystickX, joystickY, joystickRadius / 2, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-                ctx.fill();
-                ctx.closePath();
-            }
-        }
-
-        const originalGameLoop = window.gameLoop;
-        window.gameLoop = function() {
-            originalGameLoop();
-            drawJoystick();
-        };
-
+        // Интеграция с Telegram Web App
         if (window.Telegram && window.Telegram.WebApp) {
             const tg = window.Telegram.WebApp;
             tg.ready();
