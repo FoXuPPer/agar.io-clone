@@ -214,7 +214,7 @@ function drawJoystick() {
     // Основа джойстика (внешний круг)
     graph.beginPath();
     graph.arc(joystickBaseX, joystickBaseY, joystickRadius, 0, Math.PI * 2);
-    graph.fillStyle = 'rgba(0, 0, 0, 0.4)'; // Всегда тёмный
+    graph.fillStyle = 'rgba(0, 0, 0, 0.4)';
     graph.fill();
     graph.closePath();
 
@@ -381,7 +381,7 @@ window.cancelAnimFrame = (function (handle) {
 })();
 
 function animloop() {
-    global.animLoopHandle = window.requestAnimFrame(animloop);
+    global.animLoopHandle = window.requestAnimationFrame(animloop);
     gameLoop();
 }
 
@@ -450,19 +450,14 @@ function gameLoop() {
         });
         render.drawCells(cellsToDraw, playerConfig, global.toggleMassState, borders, graph);
 
-        // Обновление цели игрока с учётом джойстика
-        if (joystickActive) {
+        // Обновление цели игрока с учётом джойстика (только на смартфоне)
+        if (joystickActive && global.mobile) {
             const dx = joystickX - joystickBaseX;
             const dy = joystickY - joystickBaseY;
-            // Преобразуем экранное смещение в игровые координаты
-            const scaleFactor = 10;
-            window.canvas.target.x = player.x + dx * scaleFactor;
-            window.canvas.target.y = player.y + dy * scaleFactor;
+            // Задаём target как относительные координаты от центра canvas
+            window.canvas.target.x = dx * 5;
+            window.canvas.target.y = dy * 5;
             console.log("Джойстик: dx =", dx, "dy =", dy, "Target:", window.canvas.target);
-        } else {
-            // Если джойстик неактивен, останавливаем движение
-            window.canvas.target.x = player.x;
-            window.canvas.target.y = player.y;
         }
 
         // Отрисовка джойстика
