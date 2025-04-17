@@ -37,9 +37,26 @@ function startGame(type) {
     window.chat.registerFunctions();
     window.canvas.socket = socket;
     global.socket = socket;
+
+    playSpawnSound();
 }
 
-// Checks if the nick chosen contains valid alphanumeric characters (and underscores).
+let soundEnabled = true;
+const splitSound = document.getElementById('split_cell');
+const spawnSound = document.getElementById('spawn_cell');
+
+function playSplitSound() {
+    if (soundEnabled) {
+        splitSound.play().catch(error => console.log("Ошибка воспроизведения звука:", error));
+    }
+}
+
+function playSpawnSound() {
+    if (soundEnabled) {
+        spawnSound.play().catch(error => console.log("Ошибка воспроизведения звука:", error));
+    }
+}
+
 function validNick() {
     var regex = /^\w*$/;
     debug('Regex Test', regex.exec(playerNameInput.value));
@@ -47,7 +64,6 @@ function validNick() {
 }
 
 window.onload = function () {
-
     var btn = document.getElementById('startButton'),
         btnS = document.getElementById('spectateButton'),
         nickErrorText = document.querySelector('#startMenu .input-error');
@@ -57,8 +73,6 @@ window.onload = function () {
     };
 
     btn.onclick = function () {
-
-        // Checks if the nick is valid.
         if (validNick()) {
             nickErrorText.style.opacity = 0;
             startGame('player');
@@ -91,8 +105,6 @@ window.onload = function () {
         }
     });
 };
-
-// TODO: Break out into GameControls.
 
 var playerConfig = {
     border: 6,
@@ -138,6 +150,71 @@ roundFoodSetting.onchange = settings.toggleRoundFood;
 var c = window.canvas.cv;
 var graph = c.getContext('2d');
 
+// Джойстик
+let joystickActive = false;
+let joystickX = 0;
+let joystickY = 0;
+let joystickBaseX = 0;
+let joystickBaseY = 0;
+const joystickRadius = 50;
+const maxDistance = 50;
+
+c.addEventListener('mousedown', startJoystick);
+c.addEventListener('touchstart', startJoystick);
+c.addEventListener('mousemove', moveJoystick);
+c.addEventListener('touchmove', moveJoystick);
+c.addEventListener('mouseup', endJoystick);
+c.addEventListener('touchend', endJoystick);
+
+function startJoystick(event) {
+    event.preventDefault();
+    joystickActive = true;
+    const touch = event.type === 'touchstart' ? event.touches[0] : event;
+    joystickBaseX = touch.clientX;
+    joystickBaseY = touch.clientY;
+    joystickX = joystickBaseX;
+    joystickY = joystickBaseY;
+}
+
+function moveJoystick(event) {
+    if (!joystickActive) return;
+    event.preventDefault();
+    const touch = event.type === 'touchmove' ? event.touches[0] : event;
+    joystickX = touch.clientX;
+    joystickY = touch.clientY;
+
+    const dx = joystickX - joystickBaseX;
+    const dy = joystickY - joystickBaseY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    if (distance > maxDistance) {
+        const angle = Math.atan2(dy, dx);
+        joystickX = joystickBaseX + Math.cos(angle) * maxDistance;
+        joystickY = joystickBaseY + Math.sin(angle) * maxDistance;
+    }
+}
+
+function endJoystick() {
+    joystickActive = false;
+    joystickX = joystickBaseX;
+    joystickY = joystickBaseY;
+}
+
+function drawJoystick() {
+    if (joystickActive) {
+        graph.beginPath();
+        graph.arc(joystickBaseX, joystickBaseY, joystickRadius, 0, Math.PI * 2);
+        graph.fillStyle = 'rgba(255, 255, 255, 0.2)';
+        graph.fill();
+        graph.closePath();
+
+        graph.beginPath();
+        graph.arc(joystickX, joystickY, joystickRadius / 2, 0, Math.PI * 2);
+        graph.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        graph.fill();
+        graph.closePath();
+    }
+}
+
 $("#feed").click(function () {
     socket.emit('1');
     window.canvas.reenviar = false;
@@ -146,29 +223,26 @@ $("#feed").click(function () {
 $("#split").click(function () {
     socket.emit('2');
     window.canvas.reenviar = false;
+    playSplitSound(); 
 });
 
 function handleDisconnect() {
     socket.close();
-    if (!global.kicked) { // We have a more specific error message 
+    if (!global.kicked) {
         render.drawErrorMessage('Disconnected!', graph, global.screen);
     }
 }
 
-// socket stuff.
 function setupSocket(socket) {
-    // Handle ping.
     socket.on('pongcheck', function () {
         var latency = Date.now() - global.startPingTime;
         debug('Latency: ' + latency + 'ms');
         window.chat.addSystemLine('Ping: ' + latency + 'ms');
     });
 
-    // Handle error.
     socket.on('connect_error', handleDisconnect);
     socket.on('disconnect', handleDisconnect);
 
-    // Handle connection.
     socket.on('welcome', function (playerSettings, gameSizes) {
         player = playerSettings;
         player.name = global.playerName;
@@ -192,9 +266,6 @@ function setupSocket(socket) {
 
     socket.on('playerDied', (data) => {
         const player = isUnnamedCell(data.playerEatenName) ? 'An unnamed cell' : data.playerEatenName;
-        //const killer = isUnnamedCell(data.playerWhoAtePlayerName) ? 'An unnamed cell' : data.playerWhoAtePlayerName;
-
-        //window.chat.addSystemLine('{GAME} - <b>' + (player) + '</b> was eaten by <b>' + (killer) + '</b>');
         window.chat.addSystemLine('{GAME} - <b>' + (player) + '</b> was eaten');
     });
 
@@ -223,7 +294,6 @@ function setupSocket(socket) {
                     status += (i + 1) + '. An unnamed cell';
             }
         }
-        //status += '<br />Players: ' + data.players;
         document.getElementById('status').innerHTML = status;
     });
 
@@ -231,12 +301,10 @@ function setupSocket(socket) {
         window.chat.addSystemLine(data);
     });
 
-    // Chat.
     socket.on('serverSendPlayerChat', function (data) {
         window.chat.addChatLine(data.sender, data.message, false);
     });
 
-    // Handle movement.
     socket.on('serverTellPlayerMove', function (playerData, userData, foodsList, massList, virusList) {
         if (global.playerType == 'player') {
             player.x = playerData.x;
@@ -251,7 +319,6 @@ function setupSocket(socket) {
         fireFood = massList;
     });
 
-    // Death.
     socket.on('RIP', function () {
         global.gameStart = false;
         render.drawErrorMessage('You died!', graph, global.screen);
@@ -270,8 +337,7 @@ function setupSocket(socket) {
         global.kicked = true;
         if (reason !== '') {
             render.drawErrorMessage('You were kicked for: ' + reason, graph, global.screen);
-        }
-        else {
+        } else {
             render.drawErrorMessage('You were kicked!', graph, global.screen);
         }
         socket.close();
@@ -326,13 +392,12 @@ function gameLoop() {
             render.drawVirus(position, virus, graph);
         });
 
-
-        let borders = { // Position of the borders on the screen
+        let borders = {
             left: global.screen.width / 2 - player.x,
             right: global.screen.width / 2 + global.game.width - player.x,
             top: global.screen.height / 2 - player.y,
             bottom: global.screen.height / 2 + global.game.height - player.y
-        }
+        };
         if (global.borderDraw) {
             render.drawBorder(borders, graph);
         }
@@ -358,7 +423,18 @@ function gameLoop() {
         });
         render.drawCells(cellsToDraw, playerConfig, global.toggleMassState, borders, graph);
 
-        socket.emit('0', window.canvas.target); // playerSendTarget "Heartbeat".
+        // Отрисовка джойстика
+        drawJoystick();
+
+        // Обновление цели игрока с учётом джойстика
+        if (joystickActive) {
+            const dx = joystickX - joystickBaseX;
+            const dy = joystickY - joystickBaseY;
+            window.canvas.target.x = global.screen.width / 2 + dx * 5; 
+            window.canvas.target.y = global.screen.height / 2 + dy * 5;
+        }
+
+        socket.emit('0', window.canvas.target); 
     }
 }
 
