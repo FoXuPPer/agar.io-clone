@@ -163,6 +163,7 @@ let joystickBaseX = 0;
 let joystickBaseY = 0;
 const joystickRadius = 50;
 const maxDistance = 50;
+let joystickTouchId = null;
 
 // Привязка событий для джойстика
 c.addEventListener('mousedown', startJoystick);
@@ -174,38 +175,91 @@ c.addEventListener('touchend', endJoystick);
 
 function startJoystick(event) {
     event.preventDefault();
-    joystickActive = true;
-    const touch = event.type === 'touchstart' ? event.touches[0] : event;
-    joystickBaseX = touch.clientX;
-    joystickBaseY = touch.clientY;
-    joystickX = joystickBaseX;
-    joystickY = joystickBaseY;
-    console.log("Джойстик активирован:", joystickBaseX, joystickBaseY); // Отладка
+    if (event.type === 'touchstart') {
+        // Используем только первое касание для джойстика
+        if (joystickTouchId === null) {
+            const touch = event.changedTouches[0];
+            joystickTouchId = touch.identifier;
+            joystickActive = true;
+            joystickBaseX = touch.clientX;
+            joystickBaseY = touch.clientY;
+            joystickX = joystickBaseX;
+            joystickY = joystickBaseY;
+            console.log("Джойстик активирован:", joystickBaseX, joystickBaseY);
+        }
+    } else {
+        // Для мыши
+        joystickActive = true;
+        joystickBaseX = event.clientX;
+        joystickBaseY = event.clientY;
+        joystickX = joystickBaseX;
+        joystickY = joystickBaseY;
+        console.log("Джойстик активирован:", joystickBaseX, joystickBaseY);
+    }
 }
 
 function moveJoystick(event) {
     if (!joystickActive) return;
     event.preventDefault();
-    const touch = event.type === 'touchmove' ? event.touches[0] : event;
-    joystickX = touch.clientX;
-    joystickY = touch.clientY;
+    if (event.type === 'touchmove') {
+        // Находим касание с нужным identifier
+        for (let i = 0; i < event.changedTouches.length; i++) {
+            const touch = event.changedTouches[i];
+            if (touch.identifier === joystickTouchId) {
+                joystickX = touch.clientX;
+                joystickY = touch.clientY;
 
-    const dx = joystickX - joystickBaseX;
-    const dy = joystickY - joystickBaseY;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    if (distance > maxDistance) {
-        const angle = Math.atan2(dy, dx);
-        joystickX = joystickBaseX + Math.cos(angle) * maxDistance;
-        joystickY = joystickBaseY + Math.sin(angle) * maxDistance;
+                const dx = joystickX - joystickBaseX;
+                const dy = joystickY - joystickBaseY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance > maxDistance) {
+                    const angle = Math.atan2(dy, dx);
+                    joystickX = joystickBaseX + Math.cos(angle) * maxDistance;
+                    joystickY = joystickBaseY + Math.sin(angle) * maxDistance;
+                }
+                console.log("Джойстик движется:", dx, dy);
+                break;
+            }
+        }
+    } else {
+        // Для мыши
+        joystickX = event.clientX;
+        joystickY = event.clientY;
+
+        const dx = joystickX - joystickBaseX;
+        const dy = joystickY - joystickBaseY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance > maxDistance) {
+            const angle = Math.atan2(dy, dx);
+            joystickX = joystickBaseX + Math.cos(angle) * maxDistance;
+            joystickY = joystickBaseY + Math.sin(angle) * maxDistance;
+        }
+        console.log("Джойстик движется:", dx, dy);
     }
-    console.log("Джойстик движется:", dx, dy); // Отладка
 }
 
-function endJoystick() {
-    joystickActive = false;
-    joystickX = joystickBaseX;
-    joystickY = joystickBaseY;
-    console.log("Джойстик отключён"); // Отладка
+function endJoystick(event) {
+    event.preventDefault();
+    if (event.type === 'touchend') {
+        // Проверяем, закончилось ли касание джойстика
+        for (let i = 0; i < event.changedTouches.length; i++) {
+            const touch = event.changedTouches[i];
+            if (touch.identifier === joystickTouchId) {
+                joystickActive = false;
+                joystickX = joystickBaseX;
+                joystickY = joystickBaseY;
+                joystickTouchId = null;
+                console.log("Джойстик отключён");
+                break;
+            }
+        }
+    } else {
+        // Для мыши
+        joystickActive = false;
+        joystickX = joystickBaseX;
+        joystickY = joystickBaseY;
+        console.log("Джойстик отключён");
+    }
 }
 
 function drawJoystick() {
@@ -226,15 +280,17 @@ function drawJoystick() {
     graph.closePath();
 }
 
-$("#feed").click(function () {
-    socket.emit('1');
-    window.canvas.reenviar = false;
-});
-
-$("#split").click(function () {
+$("#split").on('touchstart click', function (event) {
+    event.preventDefault();
     socket.emit('2');
     window.canvas.reenviar = false;
-    playSplitSound(); // Воспроизведение звука при разделении
+    playSplitSound();
+});
+
+$("#feed").on('touchstart click', function (event) {
+    event.preventDefault();
+    socket.emit('1');
+    window.canvas.reenviar = false;
 });
 
 function handleDisconnect() {
